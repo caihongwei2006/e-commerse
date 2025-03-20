@@ -1,0 +1,195 @@
+package service
+
+import (
+	"e-commerce/models"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/IBM/sarama"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+)
+
+var (
+	upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	clients      = make(map[string]*websocket.Conn)
+	clientsMutex = sync.Mutex{}
+)
+
+const (
+	MessageTypeText = "text"
+)
+
+type WebSocketMessage struct {
+	Type       string `json:"type"`
+	UserID     string `json:"user_id"`
+	RoomID     string `json:"room_id"`
+	ReceiverID string `json:"receiver_id"`
+	Content    string `json:"content"`
+	Timestamp  int64  `json:"timestamp"`
+}
+
+func IMConnect(c *gin.Context) {
+	userID := c.Query("user_id")
+	roomID := c.Query("room_id")
+	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Println("websocket升级失败", err)
+		return
+	}
+	clientsMutex.Lock()
+	clients[userID] = ws
+	clientsMutex.Unlock()
+	log.Printf("用户%s连接成功", userID)
+
+	connectMsg := WebSocketMessage{
+		Type:      "connect",
+		UserID:    userID,
+		RoomID:    roomID,
+		Content:   "连接成功",
+		Timestamp: time.Now().Unix(),
+	}
+	if err := ws.WriteJSON(connectMsg); err != nil {
+		log.Println("发送连接消息失败", err)
+	}
+	go handleUserMessages(userID, ws)
+}
+
+func handleUserMessages(userID string, ws *websocket.Conn) {
+	defer func() {
+		ws.Close()
+		clientsMutex.Lock()
+		delete(clients, userID)
+		clientsMutex.Unlock()
+		log.Printf("用户%s断开连接", userID)
+	}()
+	for {
+		_, msgBytes, err := ws.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("用户%s连接异常关闭", userID)
+			}
+			break
+		}
+		var msg WebSocketMessage
+		if err := json.Unmarshal(msgBytes, &msg); err != nil {
+			log.Println("解析消息失败", err)
+			continue
+		}
+		handleMessage(userID, msg)
+	}
+
+}
+func handleMessage(senderID string, msg WebSocketMessage) {
+	msg.Timestamp = time.Now().Unix()
+	msg.UserID = senderID
+	switch msg.Type {
+	case MessageTypeText:
+		receiverID := msg.ReceiverID
+		//创建消息
+		payload := &models.MessagePayload{
+			MessageID:   uuid.New().String(),
+			SenderID:    senderID,
+			SenderName:  senderID, 
+			ReceiverID:  receiverID,
+			Content:     fmt.Sprintf("%v", msg.Content),
+			ContentType: MessageTypeText,
+			Timestamp:   msg.Timestamp,
+		}
+		producer, err := models.NewKafkaProducer() //待models实现
+		if err != nil {
+			log.Printf(" Failed to Create Kafka Producer: %s\n", err)
+			return
+		}
+		defer producer.Close()
+		topic := "conversation"
+		if err := producer.SendMessage(topic, payload); err != nil {
+			log.Printf("Failed to send message to Kafka: %s\n", err)
+			return
+		}
+
+	default:
+		log.Println("未知消息类型", msg.Type)
+	}
+}
+
+func GetOfflineMessages(c *gin.Context) {
+	senderID := c.Query("sender_id")
+	roomID := c.Query("room_id")
+	if senderID == "" || roomID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少 sender_id 或 room_id 参数"})
+		return
+	}
+
+	// Kafka 配置及消费者创建
+	config := sarama.NewConfig()
+	config.Consumer.Return.Errors = true
+	// 请根据实际情况调整 Kafka 集群地址
+	brokers := []string{"localhost:9092"}
+
+	consumer, err := sarama.NewConsumer(brokers, config)
+	if err != nil {
+		log.Printf("创建 Kafka 消费者失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Kafka消费者创建失败"})
+		return
+	}
+	defer consumer.Close()
+
+	topic := "conversation"
+	partitions, err := consumer.Partitions(topic)
+	if err != nil {
+		log.Printf("获取 topic 分区失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取分区失败"})
+		return
+	}
+
+	var messages []models.MessagePayload
+	// 组合 key 格式为 "senderID:roomID"
+	expectedKey := fmt.Sprintf("%s:%s", senderID, roomID)
+
+	// 遍历每个分区，消费消息
+	for _, partition := range partitions {
+		partitionConsumer, err := consumer.ConsumePartition(topic, partition, sarama.OffsetOldest)
+		if err != nil {
+			log.Printf("启动分区消费者失败(partition %d): %v", partition, err)
+			continue
+		}
+		defer partitionConsumer.Close()
+
+		// 设置超时，防止无限等待
+		timeout := time.After(2 * time.Second)
+	PartitionLoop:
+		for {
+			select {
+			case msg := <-partitionConsumer.Messages():
+				if msg == nil {
+					break PartitionLoop
+				}
+				// 判断消息 key 是否符合预期
+				if string(msg.Key) == expectedKey {
+					var payload models.MessagePayload
+					if err := json.Unmarshal(msg.Value, &payload); err != nil {
+						log.Printf("消息解析失败: %v", err)
+						continue
+					}
+					messages = append(messages, payload)
+				}
+			case err := <-partitionConsumer.Errors():
+				log.Printf("分区消费者错误: %v", err)
+			case <-timeout:
+				break PartitionLoop
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, messages)
+}
