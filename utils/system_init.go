@@ -19,9 +19,8 @@ type UserBasic struct {
 }
 
 var (
-	DB          *gorm.DB
-	Redis       *redis.Client
-	RedisClient *redis.Client // 导出的Redis客户端，用于其他包直接使用
+	DB    *gorm.DB
+	Redis *redis.Client
 )
 
 func InitConfig() {
@@ -54,15 +53,3 @@ func InitRedis() {
 	// 设置全局可访问的Redis客户端
 	RedisClient = Redis
 }
-
-const (
-	PublishKey = "websocket"
-
-	// Redis键前缀常量
-	UserOnlinePrefix     = "user:online:"     // 用户在线状态前缀
-	UserSessionPrefix    = "user:sessions:"   // 用户会话列表前缀
-	ChatMessagePrefix    = "chat:messages:"   // 聊天消息前缀
-	RoomInfoPrefix       = "room:"            // 聊天室信息前缀
-	UserUnreadPrefix     = "user:unread:"     // 用户未读消息计数前缀
-	UserLastActivePrefix = "user:lastactive:" // 用户最后活跃时间前缀
-)

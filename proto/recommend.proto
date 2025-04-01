@@ -1,7 +1,7 @@
 syntax = "proto3";
-package recommend;
+package com.vbird.grpc.recommend;
 
-option go_package = "e-commerse/proto/recommend";
+option go_package = "/rpc/recommend";
 
 service RecommendService {
   rpc GetRecommendations(RecommendRequest) returns (RecommendResponse) {}

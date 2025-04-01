@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RecommendService_GetRecommendations_FullMethodName = "/recommend.RecommendService/GetRecommendations"
+	RecommendService_GetRecommendations_FullMethodName = "/com.vbird.grpc.recommend.RecommendService/GetRecommendations"
 )
 
 // RecommendServiceClient is the client API for RecommendService service.
@@ -108,7 +108,7 @@ func _RecommendService_GetRecommendations_Handler(srv interface{}, ctx context.C
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var RecommendService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "recommend.RecommendService",
+	ServiceName: "com.vbird.grpc.recommend.RecommendService",
 	HandlerType: (*RecommendServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package com.vbird.grpc.login;  // 登录注册组件，简写为login
+
+option go_package = "/rpc/login";
+
+service UserService {
+  rpc GetUserById(UserRequest) returns (UserResponse) {}
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+}
+
+message UserRequest {
+  string user_id = 1;
+}
+
+message UserResponse {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string phone = 4;
+  string avatar = 5;
+  int32 gender = 6;
+  string address = 7;
+  int64 created_at = 8;
+  int32 status = 9;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+  string phone = 4;
+  string avatar = 5;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  string user_id = 2;
+  string message = 3;
+  int32 code = 4;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  bool success = 1;
+  string token = 2;
+  string message = 3;
+  UserInfo user_info = 4;
+  int32 code = 5;
+}
+
+message UserInfo {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string phone = 4;
+  string avatar = 5;
+  int32 gender = 6;
+  int64 last_login = 7;
+}

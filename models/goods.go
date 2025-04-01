@@ -8,4 +8,5 @@ type Goods struct {
 	Seller      string  `json:"merchant_name"`
 	Picture     string  `json:"picture"`
 	Description string  `json:"full_desc"`
+	Tag         string  `json:"tag"`
 }

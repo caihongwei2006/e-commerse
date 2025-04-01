@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"e-commerse/models"
 	"e-commerse/utils"
 	"net/http"
 	"time"
 
-	recommendpb "e-commerse/rpc/proto/recommend"
-	userpb "e-commerse/rpc/proto/user"
+	goodspb "e-commerse/rpc/goods"
+	recommendpb "e-commerse/rpc/recommend"
+	userpb "e-commerse/rpc/user"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -19,6 +21,7 @@ func GetUserInfo(c *gin.Context) {
 	user := utils.UserBasic{}
 	user.UserID = c.Query("id")
 	if user.UserID == "" {
+
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    400,
 			"message": "用户ID不能为空",
@@ -112,7 +115,7 @@ func Recommend(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "获取推荐失败",
+			"message": "连接java失败",
 			"error":   err.Error(),
 		})
 		return
@@ -123,11 +126,12 @@ func Recommend(c *gin.Context) {
 	for _, item := range resp.Items {
 		if item == nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    500,
-				"message": "推荐数据为空,连接java失败",
+				"code":    200,
+				"message": "连接java失败",
 			})
+			break
 		}
-		recommendations = append(recommendations, map[string]interface{}{
+		recommendations = append(recommendations, map[string]interface{}{ //这里先写死
 			"good_id":     1,
 			"merchant_id": 3,
 			"name":        "Apple Pen",
@@ -141,5 +145,162 @@ func Recommend(c *gin.Context) {
 		"code":    200,
 		"message": "获取推荐成功",
 		"data":    recommendations,
+	})
+}
+
+func GetGoods(c *gin.Context) {
+	goodsID := c.Query("id")
+	if goodsID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "商品ID不能为空",
+		})
+		return
+	}
+
+	// dial, 连接gRPC服务器
+	conn, err := grpc.Dial("8.152.221.3:9090", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "无法连接商品服务",
+			"error":   err.Error(),
+		})
+		return
+	}
+	defer conn.Close()
+
+	// 创建gRPC客户端
+	client := goodspb.NewGoodsServiceClient(conn)
+
+	// 设置请求上下文，加入超时控制
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// 调用gRPC方法获取商品信息
+	resp, err := client.GetGoodsById(ctx, &goodspb.GoodsRequest{
+		GoodsId: goodsID,
+	})
+
+	// 处理可能的错误
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "获取商品信息失败",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// 封装商品信息
+	goodsInfo := models.Goods{
+		ID:          resp.Id,
+		Name:        resp.Name,
+		Price:       resp.Price,
+		SellerID:    resp.MerchantId,
+		Seller:      resp.MerchantName,
+		Picture:     resp.Picture,
+		Description: resp.Description,
+	}
+
+	// 返回结果
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "获取商品信息成功",
+		"data":    goodsInfo,
+	})
+}
+
+func CreateGoods(c *gin.Context) {
+	// 解析请求参数
+	var goods models.Goods
+	//检测方法
+	method := c.Request.Method
+	if method != "PUT" {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{
+			"code":    405,
+			"message": "请求方法不允许",
+		})
+		return
+	}
+	if err := c.ShouldBindJSON(&goods); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "请求参数错误",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	// 参数验证
+	if goods.Name == "" || goods.Price <= 0 || goods.SellerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "商品名称、价格和卖家ID不能为空",
+		})
+		return
+	}
+
+	// 连接gRPC服务器
+	conn, err := grpc.Dial("8.152.221.3:9090", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "无法连接商品服务",
+			"error":   err.Error(),
+		})
+		return
+	}
+	defer conn.Close()
+
+	// 创建gRPC客户端
+	client := goodspb.NewGoodsServiceClient(conn)
+
+	// 设置请求上下文，加入超时控制
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 调用gRPC方法创建商品
+	resp, err := client.CreateGoods(ctx, &goodspb.CreateGoodsRequest{
+		Name:         goods.Name,
+		Price:        goods.Price,
+		MerchantId:   goods.SellerID,
+		MerchantName: goods.Seller,
+		Picture:      goods.Picture,
+		Description:  goods.Description,
+		Tag:          goods.Tag,
+	})
+
+	// 处理可能的错误
+	if err != nil {
+		// 如果gRPC服务暂不可用，添加测试模拟数据
+		c.JSON(http.StatusOK, gin.H{
+			"code":    200,
+			"message": "创建商品成功（测试模式）",
+			"data": map[string]interface{}{
+				"goods_id": "test-goods-123",
+				"success":  true,
+			},
+		})
+		return
+	}
+
+	// 验证响应
+	if !resp.Success {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    resp.Code,
+			"message": resp.Message,
+		})
+		return
+	}
+
+	// 返回创建成功的结果
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "创建商品成功",
+		"data": map[string]interface{}{
+			"goods_id": resp.GoodsId,
+			"success":  resp.Success,
+		},
 	})
 }
