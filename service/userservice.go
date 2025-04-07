@@ -8,8 +8,8 @@ import (
 	"time"
 
 	goodspb "e-commerse/rpc/goods"
+	loginpb "e-commerse/rpc/login"
 	recommendpb "e-commerse/rpc/recommend"
-	userpb "e-commerse/rpc/user"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -40,14 +40,14 @@ func GetUserInfo(c *gin.Context) {
 	defer conn.Close()
 
 	// 创建gRPC客户端
-	client := userpb.NewUserServiceClient(conn)
+	client := loginpb.NewUserServiceClient(conn)
 
 	// 设置请求上下文，加入超时控制
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	// 调用gRPC方法获取用户信息
-	resp, err := client.GetUserById(ctx, &userpb.UserRequest{
+	resp, err := client.GetUserById(ctx, &loginpb.UserRequest{
 		UserId: user.UserID,
 	})
 
@@ -95,7 +95,41 @@ func Recommend(c *gin.Context) {
 		})
 		return
 	}
+	// Extract token from Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    401,
+			"message": "Authorization header required",
+		})
+		return
+	}
 
+	// Check if the header starts with "Bearer "
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token := authHeader[7:]
+
+		// Here you would typically validate the token and extract the user ID
+		// This is a simplified example - in production, use a proper JWT library
+		// For example, you might have a function like:
+		userId, err := utils.ExtractUserIDFromToken(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"code":    401,
+				"message": "Invalid or expired token",
+				"error":   err.Error(),
+			})
+			return
+		}
+		UserID = userId
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    401,
+			"message": "Invalid authorization format, Bearer token required",
+		})
+		return
+
+	}
 	// 拆分 Dial 阶段的超时
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer dialCancel()
