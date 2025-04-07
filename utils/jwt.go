@@ -151,3 +151,11 @@ func ParseRefreshToken(tokenString string) (string, error) {
 
 	return "", errors.New("invalid refresh token")
 }
+
+func ExtractUserIDFromToken(tokenString string) (string, error) {
+	claims, err := ParseToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+	return claims.UserID, nil
+}

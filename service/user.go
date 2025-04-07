@@ -111,6 +111,7 @@ func Register(c *gin.Context) {
 		c.JSON(500, gin.H{
 			"code":    500,
 			"message": "注册失败,可能未连接到Java代码",
+			"error":   err.Error(),
 		})
 	}
 
@@ -182,6 +183,7 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
 			"message": "登录失败,可能未连接到Java代码",
+			"error":   err.Error(),
 		})
 		return
 	}

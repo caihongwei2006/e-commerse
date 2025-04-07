@@ -90,12 +90,23 @@ var upGrade = websocket.Upgrader{
 func Recommend(c *gin.Context) {
 	UserID := c.Query("id")
 	if UserID == "" {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "id is required",
 		})
 		return
 	}
-	conn, err := grpc.Dial("8.152.221.3:9090", grpc.WithInsecure())
+
+	// 拆分 Dial 阶段的超时
+	dialCtx, dialCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer dialCancel()
+
+	// 用 DialContext + WithBlock() 保证拿到连得通的连接才往下走
+	conn, err := grpc.DialContext(
+		dialCtx,
+		"8.152.221.3:9090",
+		grpc.WithInsecure(), //连通链接后往下走
+		grpc.WithBlock(),
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "failed to connect to Java server",
@@ -104,14 +115,21 @@ func Recommend(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
+
+	// 创建客户端
 	client := recommendpb.NewRecommendServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+
+	// RPC 调用阶段再单独设置超时
+	rpcCtx, rpcCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer rpcCancel()
+
+	// 构造请求
 	req := &recommendpb.RecommendRequest{
 		UserId: UserID,
 	}
-	resp, err := client.GetRecommendations(ctx, req)
 
+	// 发起 gRPC 请求
+	resp, err := client.GetRecommendations(rpcCtx, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
@@ -121,17 +139,19 @@ func Recommend(c *gin.Context) {
 		return
 	}
 
-	// 将gRPC响应转换为前端所需的格式
+	// 将 gRPC 响应转换为前端所需的格式
 	recommendations := make([]map[string]interface{}, 0)
 	for _, item := range resp.Items {
 		if item == nil {
+			// 这里你做何种处理都可以，但要注意跟“网络失败”区分开
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    200,
 				"message": "连接java失败",
 			})
-			break
+			return
 		}
-		recommendations = append(recommendations, map[string]interface{}{ //这里先写死
+		recommendations = append(recommendations, map[string]interface{}{
+			// 这里先写死
 			"good_id":     1,
 			"merchant_id": 3,
 			"name":        "Apple Pen",
@@ -140,6 +160,7 @@ func Recommend(c *gin.Context) {
 			"full_desc":   "This is an apple, this is a pen",
 		})
 	}
+
 	// 返回结果
 	c.JSON(http.StatusOK, gin.H{
 		"code":    200,

@@ -54,7 +54,7 @@ func GetCachedUserInfo(userID string) (*UserCache, error) {
 	return &userInfo, nil
 }
 
-// AddTokenToBlacklist 将令牌加入黑名单
+// AddTokenToBlacklist 将令牌加入黑名单,避免
 // 参数:
 //   - token: JWT令牌
 //   - expiration: 令牌原本的过期时间

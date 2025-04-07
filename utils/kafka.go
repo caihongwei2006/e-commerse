@@ -62,7 +62,7 @@ type Message struct {
 // SendMessageToKafka writes a Message into Kafka with (senderID+receiverID) as the Key
 func SendMessageToKafka(topic string, msg Message) error {
 	w := kafka.Writer{
-		Addr:         kafka.TCP("8.152.221.3:9092"),
+		Addr:         kafka.TCP("8.152.221.3:9091"),
 		Topic:        topic,
 		Balancer:     &kafka.LeastBytes{},
 		WriteTimeout: 10 * time.Second,
