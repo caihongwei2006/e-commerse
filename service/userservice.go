@@ -19,7 +19,9 @@ import (
 
 func GetUserInfo(c *gin.Context) {
 	user := utils.UserBasic{}
-	user.UserID = c.Query("id")
+	user.UserID = c.Param("id")
+	token := c.GetHeader("Authorization")
+	user.UserID, _ = utils.ExtractUserIDFromToken(token)
 	if user.UserID == "" {
 
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -88,10 +90,11 @@ var upGrade = websocket.Upgrader{
 }
 
 func Recommend(c *gin.Context) {
-	UserID := c.Query("id")
+	roken := c.GetHeader("Authorization")
+	UserID, _ := utils.ExtractUserIDFromToken(roken)
 	if UserID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "id is required",
+			"message": "id is required from header",
 		})
 		return
 	}
@@ -138,7 +141,7 @@ func Recommend(c *gin.Context) {
 	conn, err := grpc.DialContext(
 		dialCtx,
 		"8.152.221.3:9090",
-		grpc.WithInsecure(), //连通链接后往下走
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	)
 	if err != nil {

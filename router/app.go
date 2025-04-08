@@ -19,7 +19,7 @@ func Router() *gin.Engine {
 	authGroup.Use(middleware.JWT())
 	{
 		authGroup.GET("/recommend", service.Recommend)         // 获取推荐商品
-		authGroup.GET("/userinfo/id", service.GetUserInfo)     // 查看本人信息
+		authGroup.GET("/userinfo", service.GetUserInfo)        // 查看本人信息
 		authGroup.POST("/send", service.SendMsg)               // 发送消息
 		authGroup.GET("/messages/:contace_id", service.GetMsg) // 获取历史消息
 		authGroup.GET("/ws", service.WebSocketHandler)         // WebSocket连接
