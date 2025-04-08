@@ -22,7 +22,7 @@ type Claims struct {
 
 var (
 	// 从环境变量获取JWT密钥，如果没有则使用默认值
-	JWTSecret = []byte(getEnvOrDefault("JWT_SECRET", "e-commerce-secret-key-change-in-production"))
+	JWTSecret = []byte(getEnvOrDefault("JWT_SECRET", "e-commerce-secret-key"))
 	jwtSecret = JWTSecret
 
 	// 令牌有效期

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package test;
+
+option go_package = "/rpc/statistics";
+
+// 定义 Statistics 服务
+service Statistics {
+  // 定义 upload_log 方法，接收 StatisticsRequest，返回 StatisticsResponse
+  rpc upload_log (StatisticsRequest) returns (StatisticsResponse);
+}
+
+// 上传日志请求消息
+message StatisticsRequest {
+  bytes log = 1;
+}
+
+// 上传日志响应消息
+message StatisticsResponse {
+  string ack = 1;
+}

@@ -20,6 +20,12 @@ func main() {
 	// 初始化各种依赖
 	utils.InitConfig()
 	utils.InitRedis()
+	//起一个goroutine定时上传日志
+	go utils.UploadLogPeriodically(
+		"/var/log/myapp/access.log", // 日志文件路径
+		"localhost:50051",           // Python RPC服务地址
+		30*time.Second,              // 上传间隔
+	)
 
 	// 初始化路由
 	r := router.Router()

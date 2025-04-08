@@ -5,6 +5,7 @@ import (
 	"e-commerse/models"
 	"e-commerse/utils"
 	"net/http"
+	"strings"
 	"time"
 
 	goodspb "e-commerse/rpc/goods"
@@ -90,8 +91,9 @@ var upGrade = websocket.Upgrader{
 }
 
 func Recommend(c *gin.Context) {
-	roken := c.GetHeader("Authorization")
-	UserID, _ := utils.ExtractUserIDFromToken(roken)
+	header := c.GetHeader("Authorization")
+	token := strings.TrimPrefix(header, "Bearer ")
+	UserID, _ := utils.ExtractUserIDFromToken(token)
 	if UserID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "id is required from header",
