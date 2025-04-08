@@ -1,0 +1,18 @@
+package main
+
+import (
+	"context"
+	"io/ioutil"
+	"log"
+	"time"
+
+	pb "your_project_path/rpc/statistics"
+
+	"google.golang.org/grpc"
+)
+
+const (
+	logPath   = "/var/log/myapp/access.log"  // 日志存储路径
+	serverAddr = "localhost:50051"           // Python RPC服务端地址
+	interval   = 30 * time.Second            // 每30秒调用一次RPC上传日志
+)

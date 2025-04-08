@@ -13,7 +13,7 @@ import (
 
 const (
 	logPath    = "/var/log/myapp/access.log" // 日志存储路径
-	serverAddr = "localhost:50051"           // Python RPC服务端地址
+	serverAddr = ""                          // Python RPC服务端地址
 	interval   = 30 * time.Second            // 每30秒调用一次RPC上传日志
 )
 
