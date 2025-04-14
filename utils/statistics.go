@@ -52,7 +52,7 @@ func GetLogPath(filename string) string {
 }
 
 // WriteAccessLog 写入访问日志
-func WriteAccessLog(goodsID, tag, extraInfo string) error {
+func WriteAccessLog(goodsID, tag string) error {
 	logFileLock.Lock()
 	defer logFileLock.Unlock()
 
@@ -60,11 +60,7 @@ func WriteAccessLog(goodsID, tag, extraInfo string) error {
 
 	// 构建日志内容
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	logEntry := fmt.Sprintf("tag:%s time:%s id:%s", tag, timestamp, goodsID)
-	if extraInfo != "" {
-		logEntry += " " + extraInfo
-	}
-	logEntry += "\n"
+	logEntry := fmt.Sprintf("tag:%s time:%s id:%s\n", tag, timestamp, goodsID)
 
 	// 打开日志文件
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

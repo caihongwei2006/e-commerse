@@ -65,16 +65,6 @@ func main() {
 
 	// 启动 gRPC 服务器
 	grpcServer := startGRPCServer()
-
-	// 起一个goroutine定时上传日志
-	/*  go utils.UploadLogPeriodically(
-	        "/var/log/myapp/access.log", // 日志文件路径
-	        "localhost:50051",           // Python RPC服务地址
-	        30*time.Second,              // 上传间隔
-	    )
-	*/
-
-	// 初始化HTTP路由
 	r := router.Router()
 	if r == nil {
 		log.Fatal("路由初始化失败")

@@ -19,17 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Statistics_UploadLog_FullMethodName = "/test.Statistics/upload_log"
+	Statistics_GetLog_FullMethodName = "/test.Statistics/get_log"
 )
 
 // StatisticsClient is the client API for Statistics service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// 定义 Statistics 服务
 type StatisticsClient interface {
-	// 定义 upload_log 方法，接收 StatisticsRequest，返回 StatisticsResponse
-	UploadLog(ctx context.Context, in *StatisticsRequest, opts ...grpc.CallOption) (*StatisticsResponse, error)
+	// 定义get_log方法，接收Statistics_request，返回Statistics_response
+	GetLog(ctx context.Context, in *StatisticsRequest, opts ...grpc.CallOption) (*StatisticsResponse, error)
 }
 
 type statisticsClient struct {
@@ -40,10 +38,10 @@ func NewStatisticsClient(cc grpc.ClientConnInterface) StatisticsClient {
 	return &statisticsClient{cc}
 }
 
-func (c *statisticsClient) UploadLog(ctx context.Context, in *StatisticsRequest, opts ...grpc.CallOption) (*StatisticsResponse, error) {
+func (c *statisticsClient) GetLog(ctx context.Context, in *StatisticsRequest, opts ...grpc.CallOption) (*StatisticsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatisticsResponse)
-	err := c.cc.Invoke(ctx, Statistics_UploadLog_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Statistics_GetLog_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +51,9 @@ func (c *statisticsClient) UploadLog(ctx context.Context, in *StatisticsRequest,
 // StatisticsServer is the server API for Statistics service.
 // All implementations must embed UnimplementedStatisticsServer
 // for forward compatibility.
-//
-// 定义 Statistics 服务
 type StatisticsServer interface {
-	// 定义 upload_log 方法，接收 StatisticsRequest，返回 StatisticsResponse
-	UploadLog(context.Context, *StatisticsRequest) (*StatisticsResponse, error)
+	// 定义get_log方法，接收Statistics_request，返回Statistics_response
+	GetLog(context.Context, *StatisticsRequest) (*StatisticsResponse, error)
 	mustEmbedUnimplementedStatisticsServer()
 }
 
@@ -68,8 +64,8 @@ type StatisticsServer interface {
 // pointer dereference when methods are called.
 type UnimplementedStatisticsServer struct{}
 
-func (UnimplementedStatisticsServer) UploadLog(context.Context, *StatisticsRequest) (*StatisticsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadLog not implemented")
+func (UnimplementedStatisticsServer) GetLog(context.Context, *StatisticsRequest) (*StatisticsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLog not implemented")
 }
 func (UnimplementedStatisticsServer) mustEmbedUnimplementedStatisticsServer() {}
 func (UnimplementedStatisticsServer) testEmbeddedByValue()                    {}
@@ -92,20 +88,20 @@ func RegisterStatisticsServer(s grpc.ServiceRegistrar, srv StatisticsServer) {
 	s.RegisterService(&Statistics_ServiceDesc, srv)
 }
 
-func _Statistics_UploadLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Statistics_GetLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StatisticsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StatisticsServer).UploadLog(ctx, in)
+		return srv.(StatisticsServer).GetLog(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Statistics_UploadLog_FullMethodName,
+		FullMethod: Statistics_GetLog_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatisticsServer).UploadLog(ctx, req.(*StatisticsRequest))
+		return srv.(StatisticsServer).GetLog(ctx, req.(*StatisticsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -118,8 +114,8 @@ var Statistics_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*StatisticsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "upload_log",
-			Handler:    _Statistics_UploadLog_Handler,
+			MethodName: "get_log",
+			Handler:    _Statistics_GetLog_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -4,18 +4,17 @@ package test;
 
 option go_package = "/rpc/statistics";
 
-// 定义 Statistics 服务
-service Statistics {
-  // 定义 upload_log 方法，接收 StatisticsRequest，返回 StatisticsResponse
-  rpc upload_log (StatisticsRequest) returns (StatisticsResponse);
+service Statistics{
+    // 定义get_log方法，接收Statistics_request，返回Statistics_response
+    rpc get_log (Statistics_request) returns (Statistics_response);
 }
 
-// 上传日志请求消息
-message StatisticsRequest {
-  string ack = 1;
+// 定义Statistics_request消息体，包含一个字符串
+message Statistics_request{
+    string req = 1;  
 }
 
-// 上传日志响应消息
-message StatisticsResponse {
-  bytes log = 1;
+// 定义Statistics_response消息体，包含bytes形式的log文件
+message Statistics_response{  
+    bytes log = 1;
 }
