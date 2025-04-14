@@ -21,6 +21,7 @@ message GoodsResponse {
   string merchant_name = 5;
   string picture = 6;
   string description = 7;
+  string tag = 8;
 }
 
 // 创建商品请求

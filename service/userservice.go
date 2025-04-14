@@ -4,6 +4,7 @@ import (
 	"context"
 	"e-commerse/models"
 	"e-commerse/utils"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ func GetUserInfo(c *gin.Context) {
 	user := utils.UserBasic{}
 	user.UserID = c.Param("id")
 	token := c.GetHeader("Authorization")
+
 	user.UserID, _ = utils.ExtractUserIDFromToken(token)
 	if user.UserID == "" {
 
@@ -196,7 +198,7 @@ func Recommend(c *gin.Context) {
 			"name":        "Apple Pen",
 			"price":       114.5,
 			"picture":     "https://img.com/asdf",
-			"full_desc":   "This is an apple, this is a pen",
+			"desc":        "This is an apple, this is a pen",
 		})
 	}
 
@@ -209,7 +211,11 @@ func Recommend(c *gin.Context) {
 }
 
 func GetGoods(c *gin.Context) {
-	goodsID := c.Query("id")
+	goodsID := c.Param("id")
+	if goodsID == "" {
+		goodsID = c.Query("id")
+	}
+
 	if goodsID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    400,
@@ -246,8 +252,7 @@ func GetGoods(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "获取商品信息失败",
-			"error":   err.Error(),
+			"message": "获取商品信息失败" + err.Error(),
 		})
 		return
 	}
@@ -261,7 +266,21 @@ func GetGoods(c *gin.Context) {
 		Seller:      resp.MerchantName,
 		Picture:     resp.Picture,
 		Description: resp.Description,
+		Tag:         resp.Tag,
 	}
+
+	// 添加日志记录功能 - 记录商品访问
+	go func() {
+		tag := resp.Tag
+		if tag == "" {
+			tag = "unknown"
+		}
+		if err := LogGoodsAccess(goodsID, tag); err != nil {
+			log.Printf("记录商品访问日志失败: %v", err)
+		} else {
+			log.Printf("成功记录商品访问: ID=%s, Tag=%s", goodsID, tag)
+		}
+	}()
 
 	// 返回结果
 	c.JSON(http.StatusOK, gin.H{

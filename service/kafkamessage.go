@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -91,8 +92,10 @@ func SendMsg(c *gin.Context) {
 // GetMsg - HTTP GET handler to fetch history
 // ----------------------------------------------------------------------
 func GetMsg(c *gin.Context) {
-	senderID := c.Query("sender_id")
-	receiverID := c.Query("receiver_id")
+	senderID := c.Param("sender_id")
+	header := c.GetHeader("Authorization")
+	token := strings.TrimPrefix(header, "Bearer ")
+	receiverID, _ := utils.ExtractUserIDFromToken(token)
 	limitStr := c.DefaultQuery("limit", "20")
 
 	limit, err := strconv.ParseInt(limitStr, 10, 64)

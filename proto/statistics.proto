@@ -12,10 +12,10 @@ service Statistics {
 
 // 上传日志请求消息
 message StatisticsRequest {
-  bytes log = 1;
+  string ack = 1;
 }
 
 // 上传日志响应消息
 message StatisticsResponse {
-  string ack = 1;
+  bytes log = 1;
 }

@@ -7,6 +7,6 @@ type Goods struct {
 	SellerID    string  `json:"merchant_id"`
 	Seller      string  `json:"merchant_name"`
 	Picture     string  `json:"picture"`
-	Description string  `json:"full_desc"`
+	Description string  `json:"desc"`
 	Tag         string  `json:"tag"`
 }
